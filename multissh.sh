@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -e
-
+prog=$(basename $0)
 usage(){
 cat <<'EOT'
 $0 [options] [host1,host2,host3] [command]
@@ -20,7 +20,7 @@ background=0
 user=$(whoami)
 
 # parse options
-set -- `getopt -n$0 -u -a --longoptions "help" "hbu:" "$@"`
+set -- `getopt -n$prog -u -a --longoptions "help" "hbu:" "$@"`
 
 while [ $# -gt 0 ] ; do
 	case "$1" in

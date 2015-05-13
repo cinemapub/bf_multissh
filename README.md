@@ -13,5 +13,5 @@ run "uname -a" on 3 hosts, all at the same time
 
 run "uname -a" on 3 hosts, using username 'admin'
 
-        multissh.sh -u admin host1,host2,host3 "uname -a"
+    multissh.sh -u admin host1,host2,host3 "uname -a"
 
