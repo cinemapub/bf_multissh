@@ -10,6 +10,7 @@ usage(){
 	echo "  [host] can be ip address, hostname or user@hostname" >&2
 	echo "  [options]:" >&2 
 	echo "    -b        : start in background (so +- simultaneously on all servers)" >&2
+	echo "    -i        : do SSH initialisation (copy SSH pub key to remote host if necessary)" >&2
 	echo "    -u [user] : use this username for shh login (default: $USER)" >&2
 	exit
 }
@@ -34,11 +35,13 @@ background=0
 user=$(whoami)
 
 # parse options
-set -- `getopt -n$prog -u -a --longoptions "help" "hbu:" "$@"`
+set -- `getopt -n$prog -u -a --longoptions "help" "hbiu:" "$@"`
 defuser=$USER
+init=0
 while [ $# -gt 0 ] ; do
 	case "$1" in
 		-b) background=1;;
+		-i) init=1;;	
 		-u) defuser=$2; shift;;
 		-h| --help) usage;;
 		--) shift;break;;
@@ -50,7 +53,7 @@ done
 hostlist="$1"
 shift
 command="$*"
-echo -e "### STARTED" | prefix_feed $prog
+echo -e "### START SSH CONNECTIONS" | prefix_feed $prog
 tmpcmd=""
 cleanup_before_exit () {
 	# this code is run before exit
@@ -66,7 +69,7 @@ trap cleanup_before_exit EXIT
 # if necessary, read the sequence of commands first
 if [ "$command" == "-" ] ; then
 	# first read from stdin , then send it to all hosts
-	echo "### $prog: read commands from stdin" | prefix_feed stdin
+	echo "### Read commands from stdin (end with CTRL-D)" | prefix_feed $prog
 	tmpcmd="/tmp/$prog.$$.temp"
 	cat > $tmpcmd
 fi
@@ -82,6 +85,12 @@ for host in $hosts ; do
 		host=$(echo $host | cut -d@ -f2)
 	fi
 	
+	# check if initialisation should happen
+	if [ $init -gt 0 ] ; then
+		echo "### $prog: first initialize ssh access to $user@$host" | prefix_feed $host
+		ssh-copy-id $user@$host 2>&1 | grep -v "attempting to log in" | grep -v '^$' | prefix_feed $host
+	fi
+
 	# now find IP address
 	ip=$(ping -c 1 $host | sed 's/[\(\)]*//g' | awk 'NR == 1 {print $3}')
 	if [ "$host" == "$ip" ] ; then
@@ -90,7 +99,6 @@ for host in $hosts ; do
 		echo "### $prog: execute as [$user] on [$host] - [$ip]" | prefix_feed $host
 	fi
 	
-
 	if [ $background == 1 ]; then
 		# start in bg
 		if [ -n "$tmpcmd" ] ; then

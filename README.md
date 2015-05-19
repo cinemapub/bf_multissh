@@ -26,5 +26,12 @@ run a number of commands on several hosts
 	  [host] can be ip address, hostname or user@hostname
 	  [options]:
 		-b        : start in background (so +- simultaneously on all servers)
+		-i        : do SSH initialisation (copy SSH pub key to remote host if necessary)
 		-u [user] : use this username for shh login (default: peter)
 
+## Requirements
+
+	* bash
+	* sed/tr/grep (should be present in your OS if sh/bash is there)
+	* ssh
+	* gawk (optional)
