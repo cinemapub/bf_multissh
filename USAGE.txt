@@ -1,0 +1,27 @@
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+-=- multissh (June 2015)
+Usage:
+  multissh [options] [host1,host2,host3] [command]
+  runs [command] on all specified hosts via ssh  
+  [host]      can be ip address, hostname or user@hostname
+  [command]   command to run remotely or '-' to read from stdin
+  
+Options:
+  -h        : show this usage
+  -v        : verbose (more debugging output)
+  -b        : don't wait for remote process to finish (run in bg)
+              (so runs +- simultaneously on all servers)
+  -i        : do SSH initialisation (one-time only) 
+              (copy SSH pub key to remote host if necessary)
+  -u [user] : use this username for shh login (default: peter)
+    
+Examples:
+  multissh fileserver1,fileserver2,fileserver3 "df -h"
+    show disk usage of 3 fileservers
+  
+  multissh -b -u sql db1,db2,db3 "/etc/restart_sql.sh"
+    run a remote script as user 'sql'
+  
+  cat cleanup_sh | multissh admin@server1,root@server2 -
+    run a local script on 2 remote servers
+
