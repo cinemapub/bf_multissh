@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-set -e
+##set -ex
 prog=$(basename "$0")
 
 # print usage
 usage(){
 cat <<END
--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
--=- $prog (June 2015)
+################################################
+##### $prog (June 2015)
+##### (c) June 2015 - Peter Forret - Brightfish
 Usage:
   $prog [options] [host1,host2,host3] [command]
   runs [command] on all specified hosts via ssh  
@@ -73,7 +74,7 @@ while [ $# -gt 0 ] ; do
 			trace "-i: first initialize ssh authentication";;	
 		-v) debug=1
 			trace "-v: entering verbose mode";;	
-		-u) defuser=$2;
+		-u) defuser="$2"
 			trace "-u: using [$2] as default user"
 			shift;;
 		-h) usage;;
@@ -119,12 +120,6 @@ for host in $hosts ; do
 	fi
 	trace "connect as $user @ $host "
 
-	# check if initialisation should happen
-	if [ $init -gt 0 ] ; then
-		echo "### $prog: first initialize ssh access to $user@$host" | prefix_feed "$host"
-		ssh-copy-id "$user@$host" 2>&1 | grep -v "attempting to log in" | grep -v '^$' | prefix_feed "$host"
-	fi
-
 	# now find IP address
 	ip=$(ping -c 1 "$host" | sed 's/[\(\)]*//g' | awk 'NR == 1 {print $3}')
 	if [ "$host" == "$ip" ] ; then
@@ -133,23 +128,36 @@ for host in $hosts ; do
 		echo "### $prog: execute as [$user] on [$host] - [$ip]" | prefix_feed "$host"
 	fi
 	
-	if [ $background == 1 ]; then
-		# start in bg
-		trace "starting background process on $host (no waiting)"
-		if [ -n "$tmpcmd" ] ; then
-			(< "$tmpcmd" ssh "$user@$host" sh | prefix_feed "$host") &
-		else
-			(ssh "$user@$host" "$command" | prefix_feed "$host") &
-		fi
+	# check if initialisation should happen
+	if [ $init -gt 0 ] ; then
+		echo "### $prog: first initialize ssh access to $user@$host" | prefix_feed "$host"
+		ssh-copy-id "$user@$host" 2>&1 | grep -v "attempting to log in" | grep -v '^$' | prefix_feed "$host"
 	else
-		# start in fg
-		trace "starting foreground process on  $host"
-		if [ -n "$tmpcmd" ] ; then
-			< "$tmpcmd" ssh "$user@$host" sh | prefix_feed "$host"
+		if [ "$command" == "" ] ; then
+			echo "### $prog: no command given" | prefix_feed "$host"
 		else
-			ssh "$user@$host" "$command" | prefix_feed "$host"
+			if [ $background == 1 ]; then
+				# start in bg
+				trace "starting background process on $host (no waiting)"
+				if [ -n "$tmpcmd" ] ; then
+					(< "$tmpcmd" ssh "$user@$host" sh | prefix_feed "$host") &
+				else
+					(ssh "$user@$host" "$command" | prefix_feed "$host") &
+				fi
+			else
+				# start in fg
+				trace "starting foreground process on  $host"
+				if [ -n "$tmpcmd" ] ; then
+					trace "reading commands from $tmpcmd "
+					< "$tmpcmd" ssh "$user@$host" sh | prefix_feed "$host"
+				else
+					trace "now executing [$command] "
+					ssh "$user@$host" "$command" | prefix_feed "$host"
+				fi
+			fi
 		fi
 	fi
+
 done
 sleep 1
 if [ $background == 1 ]; then
